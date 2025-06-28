@@ -324,6 +324,7 @@
         .day-circle.completed {
             background: #4caf50;
             color: white;
+            transform: scale(1.05);
         }
 
         .day-circle:hover {
@@ -361,7 +362,7 @@
     <div class="container">
         <div class="header">
             <h1>🌟 Défi de vacances 🌟</h1>
-            <p>夏休み2ヶ月で努力し、目標達成を目指すゲーム感覚で進捗記録</p>
+            <p>Un été décisif pour le lycée, les efforts actuels deviendront sûrement partie de moi</p>
         </div>
 
         <!-- 統計情報表示 -->
@@ -427,14 +428,28 @@
                         <strong>初級達成</strong><br>
                         普通コースで黒字 → €2<br>
                         <div class="achievement-progress">
-                            <div class="achievement-fill" style="width: 30%" id="beginner-progress"></div>
+                            <div class="achievement-fill" style="width: 0%" id="beginner-progress"></div>
                         </div>
                     </div>
                     <div class="bonus-item">
                         <strong>中級達成</strong><br>
                         高級コースで黒字 → €4<br>
                         <div class="achievement-progress">
-                            <div class="achievement-fill" style="width: 50%" id="intermediate-progress"></div>
+                            <div class="achievement-fill" style="width: 0%" id="intermediate-progress"></div>
+                        </div>
+                    </div>
+                    <div class="bonus-item">
+                        <strong>上級達成</strong><br>
+                        高級コースで+1500円以上 → €5<br>
+                        <div class="achievement-progress">
+                            <div class="achievement-fill" style="width: 0%" id="advanced-progress"></div>
+                        </div>
+                    </div>
+                    <div class="bonus-item">
+                        <strong>皆勤ボーナス</strong><br>
+                        7日連続達成 → ギフト選択権<br>
+                        <div class="achievement-progress">
+                            <div class="achievement-fill" style="width: 0%" id="attendance-progress"></div>
                         </div>
                     </div>
                 </div>
@@ -448,13 +463,13 @@
                 <p>毎日寿司打かフランス語を実施して、7日間連続達成した週に選択可能！</p>
 
                 <div class="weekly-tracker">
-                    <div class="day-circle" data-day="1">月</div>
-                    <div class="day-circle" data-day="2">火</div>
-                    <div class="day-circle" data-day="3">水</div>
-                    <div class="day-circle" data-day="4">木</div>
-                    <div class="day-circle" data-day="5">金</div>
-                    <div class="day-circle" data-day="6">土</div>
-                    <div class="day-circle" data-day="7">日</div>
+                    <div class="day-circle" data-day="1" onclick="toggleDay(1)">月</div>
+                    <div class="day-circle" data-day="2" onclick="toggleDay(2)">火</div>
+                    <div class="day-circle" data-day="3" onclick="toggleDay(3)">水</div>
+                    <div class="day-circle" data-day="4" onclick="toggleDay(4)">木</div>
+                    <div class="day-circle" data-day="5" onclick="toggleDay(5)">金</div>
+                    <div class="day-circle" data-day="6" onclick="toggleDay(6)">土</div>
+                    <div class="day-circle" data-day="7" onclick="toggleDay(7)">日</div>
                 </div>
 
                 <div class="bonus-list">
@@ -557,21 +572,7 @@
 
         // データの読み込み
         function loadData() {
-            // progressDataが空の場合、サンプルデータを追加
-            if (progressData.length === 0) {
-                progressData = [
-                    {
-                        date: '2024-07-01',
-                        sushiType: 'normal',
-                        beforeScore: 1000,
-                        afterScore: 1200,
-                        frenchUnit: 'Unit 1',
-                        frenchStyle: 'standard',
-                        reward: 1.5,
-                        comment: '初日からスタート！'
-                    }
-                ];
-            }
+            // 空の状態で開始（サンプルデータなし）
             calculateStats();
         }
 
@@ -729,6 +730,15 @@
             const sushiType = document.getElementById('sushiType').value;
             const scoresDiv = document.getElementById('sushiScores');
             scoresDiv.style.display = sushiType ? 'block' : 'none';
+        }
+
+        // 週間トラッカーの日をクリックして色を変える
+        function toggleDay(dayNumber) {
+            const dayElement = document.querySelector(`[data-day="${dayNumber}"]`);
+            if (dayElement) {
+                dayElement.classList.toggle('completed');
+                console.log(`Day ${dayNumber} toggled:`, dayElement.classList.contains('completed'));
+            }
         }
 
         // 未払い報酬の支払い
