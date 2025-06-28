@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>夏休み課題進捗管理表</title>
+    <title>Défi de vacances</title>
     <style>
         * {
             margin: 0;
@@ -379,8 +379,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌟 夏休み課題進捗管理表 🌟</h1>
-            <p>頑張れ高校生！毎日の積み重ねが大きな成果に繋がります</p>
+            <h1>🌟 Défi de vacances 🌟</h1>
+            <p>Un été décisif pour le lycée, les efforts actuels deviendront sûrement partie de moi</p>
         </div>
         
         <div class="stats-container">
@@ -502,8 +502,8 @@
                 <div class="rules-title">🚫 禁止・注意事項</div>
                 <div class="rule-item">1日に2ユニット以上は進めてはならない（分散学習優先）</div>
                 <div class="rule-item">答えを写したと判定された場合 → 該当ユニット分は不払い</div>
-                <div class="rule-item">ノート未提出・説明回避 → 報酬対象外 or ライト扱い</div>
-                <div class="rule-item allowed">わからない箇所は「質問タイム」にメモして提出 → 正直さも評価対象</div>
+                <div class="rule-item">日次進捗（翌朝９時まで）未提出 → 報酬対象外 or ライト扱い</div>
+                <div class="rule-item allowed">わからない箇所は「期日」を決めて解決→期日超過は報酬減額もあり</div>
             </div>
             
             <div class="rules-section">
@@ -535,9 +535,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>ライト</td><td>内容読み＋例文音読＋練習 1/3</td><td class="reward-amount">€2</td></tr>
-                        <tr><td>スタンダード</td><td>全ページ読解＋練習全問</td><td class="reward-amount">€4</td></tr>
-                        <tr><td>エクスパート</td><td>スタンダード＋説明・要点まとめ</td><td class="reward-amount">€5＋スタンプ</td></tr>
+                        <tr><td>ライト</td><td>前Unitの復習 or Unit総ページの40%完了（丸つけまで）</td><td class="reward-amount">€2</td></tr>
+                        <tr><td>スタンダード</td><td>Unit総ページの80%完了（丸つけまで）</td><td class="reward-amount">€4</td></tr>
+                        <tr><td>エクスパート</td><td>Unit100%完了（丸つけまで）</td><td class="reward-amount">€5＋スタンプ</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -784,6 +784,800 @@
                 closeModal();
             }
         }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Défi de vacances</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff4e00, #ff6a00);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #212121;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #ff2d00;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* 統計情報表示 */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #333333;
+        }
+
+        .stat-card {
+            background: #424242;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card.unpaid {
+            background: #d32f2f;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff7043;
+            margin-bottom: 5px;
+        }
+
+        .stat-card.unpaid .stat-value {
+            color: #ffcdd2;
+        }
+
+        .stat-label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .stat-card.unpaid .stat-label {
+            color: #ffcdd2;
+        }
+
+        .pay-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .pay-btn:hover {
+            background: #45a049;
+        }
+
+        /* タブ */
+        .tabs {
+            display: flex;
+            background: #424242;
+            padding: 0 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #bbb;
+            border-radius: 10px 10px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: #ff7043;
+            color: white;
+            box-shadow: 0 -5px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* テーブル */
+        .progress-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #424242;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-table th {
+            background: #ff7043;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .progress-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #555;
+        }
+
+        .progress-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .progress-table tr:nth-child(even) {
+            background: #383838;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #333333;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #555;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #424242;
+            color: white;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #ff7043;
+        }
+
+        /* ボタン */
+        .add-record-btn, .submit-btn {
+            background: linear-gradient(135deg, #ff7043, #ff2d00);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .add-record-btn:hover, .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* ボーナスカード */
+        .bonus-card {
+            background: #424242;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .bonus-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #ff7043;
+        }
+
+        .bonus-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .bonus-item {
+            background: #383838;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #ff7043;
+        }
+
+        .achievement-progress {
+            width: 100%;
+            height: 8px;
+            background: #555;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .achievement-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff7043, #ff2d00);
+            transition: width 0.3s ease;
+        }
+
+        /* 週間トラッカー */
+        .weekly-tracker {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .day-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .day-circle.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .day-circle:hover {
+            transform: scale(1.1);
+        }
+
+        /* ルール */
+        .rules-section {
+            background: #424242;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .rules-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #ff7043;
+        }
+
+        .rule-item {
+            background: #383838;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+        }
+
+        .rule-item.allowed {
+            border-left-color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 Défi de vacances 🌟</h1>
+            <p>夏休み2ヶ月で努力し、目標達成を目指すゲーム感覚で進捗記録</p>
+        </div>
+
+        <!-- 統計情報表示 -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value" id="totalEarnings">€0</div>
+                <div class="stat-label">総獲得報酬</div>
+            </div>
+            <div class="stat-card unpaid">
+                <div class="stat-value" id="unpaidAmount">€0</div>
+                <div class="stat-label">未払い報酬</div>
+                <button class="pay-btn" onclick="payUnpaidAmount()">支払い完了</button>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="consecutiveDays">0</div>
+                <div class="stat-label">連続実施日数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sushiSessions">0</div>
+                <div class="stat-label">寿司打実施回数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="frenchUnits">0</div>
+                <div class="stat-label">フランス語ユニット</div>
+            </div>
+        </div>
+
+        <!-- タブ -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('daily-progress')">📊 日次進捗</button>
+            <button class="tab-button" onclick="openTab('achievements')">🏆 達成目標</button>
+            <button class="tab-button" onclick="openTab('weekly-gifts')">🎁 週間ギフト</button>
+            <button class="tab-button" onclick="openTab('rules')">📋 ルール</button>
+        </div>
+
+        <!-- 日次進捗 -->
+        <div id="daily-progress" class="tab-content active">
+            <button class="add-record-btn" onclick="openModal()">+ 新しい記録を追加</button>
+
+            <table class="progress-table">
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>寿司打</th>
+                        <th>フランス語</th>
+                        <th>報酬</th>
+                        <th>ステータス</th>
+                        <th>コメント</th>
+                    </tr>
+                </thead>
+                <tbody id="progressTableBody">
+                    <!-- データは JavaScript で動的に追加 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 達成目標 -->
+        <div id="achievements" class="tab-content">
+            <div class="bonus-card">
+                <div class="bonus-title">🥇 到達ボーナス</div>
+                <div class="bonus-list">
+                    <div class="bonus-item">
+                        <strong>初級達成</strong><br>
+                        普通コースで黒字 → €2<br>
+                        <div class="achievement-progress">
+                            <div class="achievement-fill" style="width: 30%" id="beginner-progress"></div>
+                        </div>
+                    </div>
+                    <div class="bonus-item">
+                        <strong>中級達成</strong><br>
+                        高級コースで黒字 → €4<br>
+                        <div class="achievement-progress">
+                            <div class="achievement-fill" style="width: 50%" id="intermediate-progress"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 週間ギフト -->
+        <div id="weekly-gifts" class="tab-content">
+            <div class="gift-selection">
+                <div class="bonus-title">🎁 7日間達成ギフト選択</div>
+                <p>毎日寿司打かフランス語を実施して、7日間連続達成した週に選択可能！</p>
+
+                <div class="weekly-tracker">
+                    <div class="day-circle" data-day="1">月</div>
+                    <div class="day-circle" data-day="2">火</div>
+                    <div class="day-circle" data-day="3">水</div>
+                    <div class="day-circle" data-day="4">木</div>
+                    <div class="day-circle" data-day="5">金</div>
+                    <div class="day-circle" data-day="6">土</div>
+                    <div class="day-circle" data-day="7">日</div>
+                </div>
+
+                <div class="bonus-list">
+                    <div class="bonus-item">
+                        <strong>🎮 スマホアプリDL</strong><br>
+                        1個（親の事前許可制、使用15分限定）
+                    </div>
+                    <div class="bonus-item">
+                        <strong>🛒 Amazonポイント</strong><br>
+                        €7分（月末に使える貯金式）
+                    </div>
+                    <div class="bonus-item">
+                        <strong>🍜 ラーメン外食</strong><br>
+                        火〜金、2回分の達成でOK
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ルール -->
+        <div id="rules" class="tab-content">
+            <div class="rules-section">
+                <div class="rules-title">🚫 禁止・注意事項</div>
+                <div class="rule-item">1日に2ユニット以上は進めてはならない（分散学習優先）</div>
+                <div class="rule-item">答えを写したと判定された場合 → 該当ユニット分は不払い</div>
+                <div class="rule-item">日次進捗（翌朝９時まで）未提出 → 報酬対象外 or ライト扱い</div>
+                <div class="rule-item allowed">わからない箇所は「期日」を決めて解決→期日超過は報酬減額もあり</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル -->
+    <div id="recordModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>新しい記録を追加</h2>
+            <form id="recordForm">
+                <div class="form-group">
+                    <label for="date">日付</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sushiType">寿司打実施</label>
+                    <select id="sushiType" onchange="toggleSushiScores()">
+                        <option value="">実施なし</option>
+                        <option value="normal">普通コース</option>
+                        <option value="premium">高級コース</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="sushiScores" style="display: none;">
+                    <label for="beforeScore">実施前スコア</label>
+                    <input type="number" id="beforeScore" placeholder="例: 1000">
+                    <label for="afterScore">実施後スコア</label>
+                    <input type="number" id="afterScore" placeholder="例: 1500">
+                </div>
+
+                <div class="form-group">
+                    <label for="frenchUnit">フランス語ユニット</label>
+                    <input type="text" id="frenchUnit" placeholder="例: Unit 1">
+                </div>
+
+                <div class="form-group">
+                    <label for="frenchStyle">フランス語スタイル</label>
+                    <select id="frenchStyle">
+                        <option value="">実施なし</option>
+                        <option value="light">ライト</option>
+                        <option value="standard">スタンダード</option>
+                        <option value="expert">エクスパート</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="comment">コメント</label>
+                    <input type="text" id="comment" placeholder="頑張ったことや気づいたことを記入">
+                </div>
+
+                <button type="submit" class="submit-btn">記録を追加</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // データ管理用のグローバル変数
+        let progressData = [];
+        let stats = {
+            totalEarnings: 0,
+            unpaidAmount: 0,
+            consecutiveDays: 0,
+            sushiSessions: 0,
+            frenchUnits: 0
+        };
+
+        // アプリ初期化
+        function initApp() {
+            loadData();
+            updateDisplay();
+        }
+
+        // データの読み込み
+        function loadData() {
+            // progressDataが空の場合、サンプルデータを追加
+            if (progressData.length === 0) {
+                progressData = [
+                    {
+                        date: '2024-07-01',
+                        sushiType: 'normal',
+                        beforeScore: 1000,
+                        afterScore: 1200,
+                        frenchUnit: 'Unit 1',
+                        frenchStyle: 'standard',
+                        reward: 1.5,
+                        comment: '初日からスタート！'
+                    }
+                ];
+            }
+            calculateStats();
+        }
+
+        // 統計の計算
+        function calculateStats() {
+            stats.totalEarnings = progressData.reduce((sum, record) => sum + (record.reward || 0), 0);
+            stats.unpaidAmount = progressData.reduce((sum, record) => sum + (record.unpaid || 0), 0);
+            stats.sushiSessions = progressData.filter(record => record.sushiType).length;
+            stats.frenchUnits = progressData.filter(record => record.frenchUnit).length;
+            
+            // 連続日数の計算（簡単な実装）
+            stats.consecutiveDays = calculateConsecutiveDays();
+        }
+
+        // 連続日数の計算
+        function calculateConsecutiveDays() {
+            if (progressData.length === 0) return 0;
+            
+            // 日付でソート
+            const sortedData = progressData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            let consecutive = 0;
+            let currentDate = new Date();
+            
+            for (let record of sortedData) {
+                const recordDate = new Date(record.date);
+                const dayDiff = Math.floor((currentDate - recordDate) / (1000 * 60 * 60 * 24));
+                
+                if (dayDiff === consecutive) {
+                    consecutive++;
+                    currentDate = recordDate;
+                } else {
+                    break;
+                }
+            }
+            
+            return consecutive;
+        }
+
+        // 表示の更新
+        function updateDisplay() {
+            updateStats();
+            updateProgressTable();
+        }
+
+        // 統計表示の更新
+        function updateStats() {
+            document.getElementById('totalEarnings').textContent = `€${stats.totalEarnings.toFixed(1)}`;
+            document.getElementById('unpaidAmount').textContent = `€${stats.unpaidAmount.toFixed(1)}`;
+            document.getElementById('consecutiveDays').textContent = stats.consecutiveDays;
+            document.getElementById('sushiSessions').textContent = stats.sushiSessions;
+            document.getElementById('frenchUnits').textContent = stats.frenchUnits;
+        }
+
+        // 進捗テーブルの更新
+        function updateProgressTable() {
+            const tbody = document.getElementById('progressTableBody');
+            tbody.innerHTML = '';
+
+            // 日付順でソート（新しい順）
+            const sortedData = progressData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedData.forEach(record => {
+                const row = createTableRow(record);
+                tbody.appendChild(row);
+            });
+        }
+
+        // テーブル行の作成
+        function createTableRow(record) {
+            const row = document.createElement('tr');
+            
+            const sushiDisplay = record.sushiType ? 
+                `${record.sushiType === 'normal' ? '普通' : '高級'}コース (${record.beforeScore}→${record.afterScore})` : 
+                '未実施';
+            
+            const frenchDisplay = record.frenchUnit ? 
+                `${record.frenchUnit} (${record.frenchStyle})` : 
+                '未実施';
+            
+            const rewardDisplay = record.reward ? `€${record.reward}` : '€0';
+            const status = (record.sushiType || record.frenchUnit) ? '実施済み' : '未実施';
+
+            row.innerHTML = `
+                <td>${record.date}</td>
+                <td>${sushiDisplay}</td>
+                <td>${frenchDisplay}</td>
+                <td>${rewardDisplay}</td>
+                <td>${status}</td>
+                <td>${record.comment || ''}</td>
+            `;
+
+            return row;
+        }
+
+        // 報酬計算
+        function calculateReward(sushiType, beforeScore, afterScore, frenchStyle) {
+            let reward = 0;
+
+            // 寿司打報酬
+            if (sushiType && beforeScore && afterScore) {
+                const improvement = afterScore - beforeScore;
+                if (improvement > 0) {
+                    if (sushiType === 'normal') {
+                        reward += 0.5; // 普通コースで改善
+                    } else if (sushiType === 'premium') {
+                        reward += 1.0; // 高級コースで改善
+                    }
+                }
+            }
+
+            // フランス語報酬
+            if (frenchStyle) {
+                switch (frenchStyle) {
+                    case 'light':
+                        reward += 0.5;
+                        break;
+                    case 'standard':
+                        reward += 1.0;
+                        break;
+                    case 'expert':
+                        reward += 1.5;
+                        break;
+                }
+            }
+
+            return reward;
+        }
+
+        // タブ切り替え
+        function openTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // モーダル開閉
+        function openModal() {
+            document.getElementById('recordModal').classList.add('show');
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        }
+
+        function closeModal() {
+            document.getElementById('recordModal').classList.remove('show');
+            document.getElementById('recordForm').reset();
+            document.getElementById('sushiScores').style.display = 'none';
+        }
+
+        // 寿司打スコア入力欄の表示切り替え
+        function toggleSushiScores() {
+            const sushiType = document.getElementById('sushiType').value;
+            const scoresDiv = document.getElementById('sushiScores');
+            scoresDiv.style.display = sushiType ? 'block' : 'none';
+        }
+
+        // 未払い報酬の支払い
+        function payUnpaidAmount() {
+            if (stats.unpaidAmount > 0) {
+                if (confirm(`未払い報酬 €${stats.unpaidAmount.toFixed(1)} を支払い完了にしますか？`)) {
+                    // 未払い報酬をゼロにする
+                    progressData.forEach(record => {
+                        if (record.unpaid) {
+                            record.unpaid = 0;
+                        }
+                    });
+                    
+                    calculateStats();
+                    updateDisplay();
+                    alert('支払いが完了しました！');
+                }
+            } else {
+                alert('未払い報酬はありません。');
+            }
+        }
+
+        // フォーム送信処理
+        document.getElementById('recordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = {
+                date: document.getElementById('date').value,
+                sushiType: document.getElementById('sushiType').value,
+                beforeScore: parseInt(document.getElementById('beforeScore').value) || 0,
+                afterScore: parseInt(document.getElementById('afterScore').value) || 0,
+                frenchUnit: document.getElementById('frenchUnit').value,
+                frenchStyle: document.getElementById('frenchStyle').value,
+                comment: document.getElementById('comment').value
+            };
+
+            // 報酬計算
+            const reward = calculateReward(
+                formData.sushiType,
+                formData.beforeScore,
+                formData.afterScore,
+                formData.frenchStyle
+            );
+
+            // 新しい記録を追加
+            const newRecord = {
+                ...formData,
+                reward: reward,
+                unpaid: reward // 新しい報酬は未払いとして追加
+            };
+
+            progressData.push(newRecord);
+            calculateStats();
+            updateDisplay();
+            closeModal();
+
+            alert(`記録が追加されました！獲得報酬: €${reward}`);
+        });
+
+        // アプリケーション開始
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
