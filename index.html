@@ -650,16 +650,18 @@
             try {
                 showSyncStatus('データを読み込み中...', 'syncing');
                 
-                const response = await fetch(SCRIPT_URL);
+                const response = await fetch(SCRIPT_URL + '?action=getData');
                 const data = await response.json();
+                
+                console.log('受信データ:', data);
                 
                 // ヘッダー行を除外してデータを変換
                 if (data && data.length > 1) {
                     progressData = data.slice(1).map(row => ({
                         date: row[0],
                         sushiType: row[1],
-                        beforeScore: row[2],
-                        afterScore: row[3],
+                        beforeScore: parseInt(row[2]) || 0,
+                        afterScore: parseInt(row[3]) || 0,
                         frenchUnit: row[4],
                         frenchStyle: row[5],
                         reward: parseFloat(row[6]) || 0,
@@ -677,6 +679,11 @@
             } catch (error) {
                 console.error('データ読み込みエラー:', error);
                 showSyncStatus('データ読み込みに失敗しました', 'error');
+                
+                // エラー時はダミーデータで表示
+                progressData = [];
+                calculateStats();
+                updateDisplay();
             }
         }
 
@@ -687,22 +694,29 @@
                 
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(recordData)
+                    body: JSON.stringify({
+                        action: 'addRecord',
+                        data: recordData
+                    })
                 });
                 
-                // no-corsモードでは response.json() が使えないため、成功と仮定
-                showSyncStatus('データの保存完了', 'success');
+                const result = await response.json();
                 
-                // データを再読み込みして最新状態に同期
-                setTimeout(() => {
-                    loadDataFromSpreadsheet();
-                }, 1000);
-                
-                return true;
+                if (result.success) {
+                    showSyncStatus('データの保存完了', 'success');
+                    
+                    // データを再読み込みして最新状態に同期
+                    setTimeout(() => {
+                        loadDataFromSpreadsheet();
+                    }, 1000);
+                    
+                    return true;
+                } else {
+                    throw new Error(result.error || 'データ保存に失敗しました');
+                }
                 
             } catch (error) {
                 console.error('データ保存エラー:', error);
@@ -735,7 +749,7 @@
                 const expectedDate = new Date();
                 expectedDate.setDate(expectedDate.getDate() - i);
                 
-                // 日付が連続しているかチェック
+                // 日付が連続しているかチェック（日付のみ比較）
                 if (recordDate.toDateString() === expectedDate.toDateString()) {
                     consecutive++;
                 } else {
@@ -750,6 +764,7 @@
         function updateDisplay() {
             updateStats();
             updateProgressTable();
+            updateAchievements();
         }
 
         // 統計表示の更新
@@ -759,6 +774,30 @@
             document.getElementById('consecutiveDays').textContent = stats.consecutiveDays;
             document.getElementById('sushiSessions').textContent = stats.sushiSessions;
             document.getElementById('frenchUnits').textContent = stats.frenchUnits;
+        }
+
+        // 達成状況の更新
+        function updateAchievements() {
+            // 初級達成 - 普通コースで黒字
+            const beginnerCount = progressData.filter(record => 
+                record.sushiType === 'normal' && record.afterScore > record.beforeScore
+            ).length;
+            document.getElementById('beginner-progress').style.width = Math.min(beginnerCount * 20, 100) + '%';
+            
+            // 中級達成 - 高級コースで黒字
+            const intermediateCount = progressData.filter(record => 
+                record.sushiType === 'premium' && record.afterScore > record.beforeScore
+            ).length;
+            document.getElementById('intermediate-progress').style.width = Math.min(intermediateCount * 25, 100) + '%';
+            
+            // 上級達成 - 高級コースで+1500円以上
+            const advancedCount = progressData.filter(record => 
+                record.sushiType === 'premium' && (record.afterScore - record.beforeScore) >= 1500
+            ).length;
+            document.getElementById('advanced-progress').style.width = Math.min(advancedCount * 33, 100) + '%';
+            
+            // 皆勤ボーナス - 7日連続
+            document.getElementById('attendance-progress').style.width = Math.min((stats.consecutiveDays / 7) * 100, 100) + '%';
         }
 
         // 進捗テーブルの更新
@@ -780,75 +819,4 @@
             const row = document.createElement('tr');
             
             const sushiDisplay = record.sushiType ? 
-                `${record.sushiType === 'normal' ? '普通' : '高級'}コース (${record.beforeScore}→${record.afterScore})` : 
-                '未実施';
-            
-            const frenchDisplay = record.frenchUnit ? 
-                `${record.frenchUnit} (${record.frenchStyle})` : 
-                '未実施';
-            
-            const rewardDisplay = record.reward ? `€${record.reward}` : '€0';
-            const status = (record.sushiType || record.frenchUnit) ? '実施済み' : '未実施';
-
-            row.innerHTML = `
-                <td>${record.date}</td>
-                <td>${sushiDisplay}</td>
-                <td>${frenchDisplay}</td>
-                <td>${rewardDisplay}</td>
-                <td>${status}</td>
-                <td>${record.comment || ''}</td>
-            `;
-
-            return row;
-        }
-
-        // 報酬計算
-        function calculateReward(sushiType, beforeScore, afterScore, frenchStyle) {
-            let reward = 0;
-
-            // 寿司打報酬
-            if (sushiType && beforeScore && afterScore) {
-                const improvement = afterScore - beforeScore;
-                if (improvement > 0) {
-                    if (sushiType === 'normal') {
-                        reward += 0.5; // 普通コースで改善
-                    } else if (sushiType === 'premium') {
-                        reward += 1.0; // 高級コースで改善
-                    }
-                }
-            }
-
-            // フランス語報酬
-            if (frenchStyle) {
-                switch (frenchStyle) {
-                    case 'light':
-                        reward += 0.5;
-                        break;
-                    case 'standard':
-                        reward += 1.0;
-                        break;
-                    case 'expert':
-                        reward += 1.5;
-                        break;
-                }
-            }
-
-            return reward;
-        }
-
-        // タブ切り替え
-        function openTab(tabName) {
-            const tabs = document.querySelectorAll('.tab-content');
-            const buttons = document.querySelectorAll('.tab-button');
-
-            tabs.forEach(tab => tab.classList.remove('active'));
-            buttons.forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        // モーダル開閉
-        function openModal() {
-            document.getElementById('recordModal').classList.add('show');
-            document.getElementById('date').value = new Date().toISOString().split('T
+                `${
