@@ -817,6 +817,66 @@
         // テーブル行の作成
         function createTableRow(record) {
             const row = document.createElement('tr');
-            
-            const sushiDisplay = record.sushiType ? 
-                `${
+
+            const sushiDisplay = record.sushiType
+                ? `${record.sushiType} (${record.beforeScore} → ${record.afterScore})`
+                : '-';
+
+            const frenchDisplay = record.frenchUnit
+                ? `${record.frenchUnit} (${record.frenchStyle})`
+                : '-';
+
+            const status = record.unpaid > 0 ? '未払い' : '済';
+
+            row.innerHTML = `
+                <td>${record.date}</td>
+                <td>${sushiDisplay}</td>
+                <td>${frenchDisplay}</td>
+                <td>€${record.reward.toFixed(1)}</td>
+                <td>${status}</td>
+                <td>${record.comment || ''}</td>
+            `;
+
+            return row;
+        }
+        // 🌟 タブ切替
+        function openTab(tabId, event) {
+            // すべて非表示
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // すべてのボタンから active を外す
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            // 対象タブを表示
+            document.getElementById(tabId).classList.add('active');
+            // 押したボタンだけ active に
+            if (event) event.target.classList.add('active');
+            }
+
+        // 🌟 モーダル開閉
+        function openModal() {
+            document.getElementById('recordModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('recordModal').classList.remove('show');
+        }
+
+        // 🌟 寿司スコア入力表示
+        function toggleSushiScores() {
+            const type = document.getElementById('sushiType').value;
+            const scores = document.getElementById('sushiScores');
+            scores.style.display = (type === 'normal' || type === 'premium') ? 'block' : 'none';
+        }
+
+        // 🌟 未払い報酬を支払い
+        function payUnpaidAmount() {
+            stats.unpaidAmount = 0;
+            updateStats();
+            showSyncStatus('未払い報酬を支払いました', 'success');
+        }
+
+        // 🌟 ページロード時に初期化
+        window.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>       
