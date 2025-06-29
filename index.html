@@ -41,6 +41,39 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
+        /* 同期状態表示 */
+        .sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sync-status.syncing {
+            background: #ff9800;
+            color: white;
+        }
+
+        .sync-status.success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .sync-status.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .sync-status.hidden {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
         /* 統計情報表示 */
         .stats-container {
             display: grid;
@@ -258,6 +291,29 @@
             margin-top: 10px;
         }
 
+        .submit-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* データ同期ボタン */
+        .sync-btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .sync-btn:hover {
+            background: #1976d2;
+        }
+
         /* ボーナスカード */
         .bonus-card {
             background: #424242;
@@ -359,6 +415,11 @@
     </style>
 </head>
 <body>
+    <!-- 同期状態表示 -->
+    <div id="syncStatus" class="sync-status hidden">
+        同期中...
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>🌟 Défi de vacances 🌟</h1>
@@ -401,6 +462,7 @@
         <!-- 日次進捗 -->
         <div id="daily-progress" class="tab-content active">
             <button class="add-record-btn" onclick="openModal()">+ 新しい記録を追加</button>
+            <button class="sync-btn" onclick="loadDataFromSpreadsheet()">🔄 データを同期</button>
 
             <table class="progress-table">
                 <thead>
@@ -548,12 +610,15 @@
                     <input type="text" id="comment" placeholder="頑張ったことや気づいたことを記入">
                 </div>
 
-                <button type="submit" class="submit-btn">記録を追加</button>
+                <button type="submit" class="submit-btn" id="submitBtn">記録を追加</button>
             </form>
         </div>
     </div>
 
     <script>
+        // Google Apps Script のURL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNajvUG-_1dBl7t_FcVtKzkB5thUwzRERvRc95gpxULpRCdzEwxn-UHMZurR6W2oHGSw/exec';
+
         // データ管理用のグローバル変数
         let progressData = [];
         let stats = {
@@ -564,16 +629,86 @@
             frenchUnits: 0
         };
 
-        // アプリ初期化
-        function initApp() {
-            loadData();
-            updateDisplay();
+        // 同期状態表示
+        function showSyncStatus(message, type = 'syncing') {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = message;
+            statusEl.className = `sync-status ${type}`;
+            
+            setTimeout(() => {
+                statusEl.classList.add('hidden');
+            }, 3000);
         }
 
-        // データの読み込み
-        function loadData() {
-            // 空の状態で開始（サンプルデータなし）
-            calculateStats();
+        // アプリ初期化
+        function initApp() {
+            loadDataFromSpreadsheet();
+        }
+
+        // Spreadsheetからデータを読み込み
+        async function loadDataFromSpreadsheet() {
+            try {
+                showSyncStatus('データを読み込み中...', 'syncing');
+                
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                
+                // ヘッダー行を除外してデータを変換
+                if (data && data.length > 1) {
+                    progressData = data.slice(1).map(row => ({
+                        date: row[0],
+                        sushiType: row[1],
+                        beforeScore: row[2],
+                        afterScore: row[3],
+                        frenchUnit: row[4],
+                        frenchStyle: row[5],
+                        reward: parseFloat(row[6]) || 0,
+                        unpaid: parseFloat(row[7]) || 0,
+                        comment: row[8] || ''
+                    })).filter(record => record.date); // 空の行を除外
+                } else {
+                    progressData = [];
+                }
+                
+                calculateStats();
+                updateDisplay();
+                showSyncStatus('データの読み込み完了', 'success');
+                
+            } catch (error) {
+                console.error('データ読み込みエラー:', error);
+                showSyncStatus('データ読み込みに失敗しました', 'error');
+            }
+        }
+
+        // Spreadsheetにデータを保存
+        async function saveDataToSpreadsheet(recordData) {
+            try {
+                showSyncStatus('データを保存中...', 'syncing');
+                
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(recordData)
+                });
+                
+                // no-corsモードでは response.json() が使えないため、成功と仮定
+                showSyncStatus('データの保存完了', 'success');
+                
+                // データを再読み込みして最新状態に同期
+                setTimeout(() => {
+                    loadDataFromSpreadsheet();
+                }, 1000);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('データ保存エラー:', error);
+                showSyncStatus('データ保存に失敗しました', 'error');
+                return false;
+            }
         }
 
         // 統計の計算
@@ -583,7 +718,7 @@
             stats.sushiSessions = progressData.filter(record => record.sushiType).length;
             stats.frenchUnits = progressData.filter(record => record.frenchUnit).length;
             
-            // 連続日数の計算（簡単な実装）
+            // 連続日数の計算
             stats.consecutiveDays = calculateConsecutiveDays();
         }
 
@@ -591,18 +726,18 @@
         function calculateConsecutiveDays() {
             if (progressData.length === 0) return 0;
             
-            // 日付でソート
+            // 日付でソート（新しい順）
             const sortedData = progressData.sort((a, b) => new Date(b.date) - new Date(a.date));
             let consecutive = 0;
-            let currentDate = new Date();
             
-            for (let record of sortedData) {
-                const recordDate = new Date(record.date);
-                const dayDiff = Math.floor((currentDate - recordDate) / (1000 * 60 * 60 * 24));
+            for (let i = 0; i < sortedData.length; i++) {
+                const recordDate = new Date(sortedData[i].date);
+                const expectedDate = new Date();
+                expectedDate.setDate(expectedDate.getDate() - i);
                 
-                if (dayDiff === consecutive) {
+                // 日付が連続しているかチェック
+                if (recordDate.toDateString() === expectedDate.toDateString()) {
                     consecutive++;
-                    currentDate = recordDate;
                 } else {
                     break;
                 }
@@ -716,90 +851,4 @@
         // モーダル開閉
         function openModal() {
             document.getElementById('recordModal').classList.add('show');
-            document.getElementById('date').value = new Date().toISOString().split('T')[0];
-        }
-
-        function closeModal() {
-            document.getElementById('recordModal').classList.remove('show');
-            document.getElementById('recordForm').reset();
-            document.getElementById('sushiScores').style.display = 'none';
-        }
-
-        // 寿司打スコア入力欄の表示切り替え
-        function toggleSushiScores() {
-            const sushiType = document.getElementById('sushiType').value;
-            const scoresDiv = document.getElementById('sushiScores');
-            scoresDiv.style.display = sushiType ? 'block' : 'none';
-        }
-
-        // 週間トラッカーの日をクリックして色を変える
-        function toggleDay(dayNumber) {
-            const dayElement = document.querySelector(`[data-day="${dayNumber}"]`);
-            if (dayElement) {
-                dayElement.classList.toggle('completed');
-                console.log(`Day ${dayNumber} toggled:`, dayElement.classList.contains('completed'));
-            }
-        }
-
-        // 未払い報酬の支払い
-        function payUnpaidAmount() {
-            if (stats.unpaidAmount > 0) {
-                if (confirm(`未払い報酬 €${stats.unpaidAmount.toFixed(1)} を支払い完了にしますか？`)) {
-                    // 未払い報酬をゼロにする
-                    progressData.forEach(record => {
-                        if (record.unpaid) {
-                            record.unpaid = 0;
-                        }
-                    });
-                    
-                    calculateStats();
-                    updateDisplay();
-                    alert('支払いが完了しました！');
-                }
-            } else {
-                alert('未払い報酬はありません。');
-            }
-        }
-
-        // フォーム送信処理
-        document.getElementById('recordForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = {
-                date: document.getElementById('date').value,
-                sushiType: document.getElementById('sushiType').value,
-                beforeScore: parseInt(document.getElementById('beforeScore').value) || 0,
-                afterScore: parseInt(document.getElementById('afterScore').value) || 0,
-                frenchUnit: document.getElementById('frenchUnit').value,
-                frenchStyle: document.getElementById('frenchStyle').value,
-                comment: document.getElementById('comment').value
-            };
-
-            // 報酬計算
-            const reward = calculateReward(
-                formData.sushiType,
-                formData.beforeScore,
-                formData.afterScore,
-                formData.frenchStyle
-            );
-
-            // 新しい記録を追加
-            const newRecord = {
-                ...formData,
-                reward: reward,
-                unpaid: reward // 新しい報酬は未払いとして追加
-            };
-
-            progressData.push(newRecord);
-            calculateStats();
-            updateDisplay();
-            closeModal();
-
-            alert(`記録が追加されました！獲得報酬: €${reward}`);
-        });
-
-        // アプリケーション開始
-        document.addEventListener('DOMContentLoaded', initApp);
-    </script>
-</body>
-</html>
+            document.getElementById('date').value = new Date().toISOString().split('T
