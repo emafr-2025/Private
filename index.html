@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Défi de vacances</title>
     <style>
+        /* 全体設定 */
         * {
             margin: 0;
             padding: 0;
@@ -12,7 +13,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif; /* Tailwind CSSとの相性を考慮しInterに変更 */
             background: linear-gradient(135deg, #ff4e00, #ff6a00);
             min-height: 100vh;
             padding: 20px;
@@ -423,7 +424,7 @@
     <div class="container">
         <div class="header">
             <h1>🌟 Défi de vacances 🌟</h1>
-            <p>Un été décisif pour le lycée, les efforts actuels deviendront sûrement partie de moi</p>
+            <p>Un été décisif pour le lycée, les efforts actuels deviennent sûrement partie de moi</p>
         </div>
 
         <!-- 統計情報表示 -->
@@ -453,10 +454,10 @@
 
         <!-- タブ -->
         <div class="tabs">
-            <button class="tab-button active" onclick="openTab('daily-progress')">📊 日次進捗</button>
-            <button class="tab-button" onclick="openTab('achievements')">🏆 達成目標</button>
-            <button class="tab-button" onclick="openTab('weekly-gifts')">🎁 週間ギフト</button>
-            <button class="tab-button" onclick="openTab('rules')">📋 ルール</button>
+            <button class="tab-button active" onclick="openTab('daily-progress', event)">📊 日次進捗</button>
+            <button class="tab-button" onclick="openTab('achievements', event)">🏆 達成目標</button>
+            <button class="tab-button" onclick="openTab('weekly-gifts', event)">🎁 週間ギフト</button>
+            <button class="tab-button" onclick="openTab('rules', event)">� ルール</button>
         </div>
 
         <!-- 日次進捗 -->
@@ -617,6 +618,7 @@
 
     <script>
         // Google Apps Script のURL
+        // あなたのデプロイしたGASのURLに置き換えてください
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNajvUG-_1dBl7t_FcVtKzkB5thUwzRERvRc95gpxULpRCdzEwxn-UHMZurR6W2oHGSw/exec';
 
         // データ管理用のグローバル変数
@@ -643,6 +645,8 @@
         // アプリ初期化
         function initApp() {
             loadDataFromSpreadsheet();
+            // フォームの送信イベントリスナーを設定
+            document.getElementById('recordForm').addEventListener('submit', handleRecordSubmit);
         }
 
         // Spreadsheetからデータを読み込み
@@ -725,6 +729,71 @@
             }
         }
 
+        // フォーム送信時の処理
+        async function handleRecordSubmit(event) {
+            event.preventDefault(); // フォームのデフォルト送信を防ぐ
+
+            const date = document.getElementById('date').value;
+            const sushiType = document.getElementById('sushiType').value;
+            const beforeScore = parseInt(document.getElementById('beforeScore').value) || 0;
+            const afterScore = parseInt(document.getElementById('afterScore').value) || 0;
+            const frenchUnit = document.getElementById('frenchUnit').value.trim();
+            const frenchStyle = document.getElementById('frenchStyle').value;
+            const comment = document.getElementById('comment').value;
+
+            let dailyReward = 0;
+            let sushiReward = 0;
+            let frenchReward = 0;
+
+            // 寿司打の報酬計算
+            if (sushiType === 'normal' && afterScore > beforeScore) {
+                sushiReward = 2.0; // 普通コースで黒字
+            } else if (sushiType === 'premium') {
+                if ((afterScore - beforeScore) >= 1500) {
+                    sushiReward = 5.0; // 高級コースで+1500円以上
+                } else if (afterScore > beforeScore) {
+                    sushiReward = 4.0; // 高級コースで黒字
+                }
+            }
+
+            // フランス語の報酬計算（例として設定）
+            if (frenchUnit) { // ユニットが入力されている場合のみ
+                if (frenchStyle === 'light') {
+                    frenchReward = 0.5;
+                } else if (frenchStyle === 'standard') {
+                    frenchReward = 1.0;
+                } else if (frenchStyle === 'expert') {
+                    frenchReward = 1.5;
+                }
+            }
+
+            dailyReward = sushiReward + frenchReward;
+
+            const recordData = {
+                date: date,
+                sushiType: sushiType,
+                beforeScore: beforeScore,
+                afterScore: afterScore,
+                frenchUnit: frenchUnit,
+                frenchStyle: frenchStyle,
+                reward: dailyReward, // 計算された報酬
+                unpaid: dailyReward, // 初期状態では報酬額がそのまま未払い額
+                comment: comment
+            };
+
+            const success = await saveDataToSpreadsheet(recordData);
+            if (success) {
+                closeModal();
+                resetForm();
+            }
+        }
+
+        // フォームのリセット
+        function resetForm() {
+            document.getElementById('recordForm').reset();
+            toggleSushiScores(); // 寿司スコア入力欄を非表示に戻す
+        }
+
         // 統計の計算
         function calculateStats() {
             stats.totalEarnings = progressData.reduce((sum, record) => sum + (record.reward || 0), 0);
@@ -741,18 +810,26 @@
             if (progressData.length === 0) return 0;
             
             // 日付でソート（新しい順）
-            const sortedData = progressData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const sortedData = [...progressData].sort((a, b) => new Date(b.date) - new Date(a.date));
             let consecutive = 0;
             
+            // 今日の日付を取得し、日付部分のみ比較できるように調整
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
             for (let i = 0; i < sortedData.length; i++) {
                 const recordDate = new Date(sortedData[i].date);
-                const expectedDate = new Date();
-                expectedDate.setDate(expectedDate.getDate() - i);
-                
-                // 日付が連続しているかチェック（日付のみ比較）
-                if (recordDate.toDateString() === expectedDate.toDateString()) {
+                recordDate.setHours(0, 0, 0, 0); // 日付部分のみ比較
+
+                const expectedDate = new Date(today);
+                expectedDate.setDate(today.getDate() - i);
+                expectedDate.setHours(0, 0, 0, 0);
+
+                // 日付が連続しているかチェック
+                if (recordDate.getTime() === expectedDate.getTime()) {
                     consecutive++;
                 } else {
+                    // 間に日付が飛んだ場合、連続は途切れる
                     break;
                 }
             }
@@ -806,7 +883,7 @@
             tbody.innerHTML = '';
 
             // 日付順でソート（新しい順）
-            const sortedData = progressData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const sortedData = [...progressData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             sortedData.forEach(record => {
                 const row = createTableRow(record);
@@ -839,7 +916,8 @@
 
             return row;
         }
-        // 🌟 タブ切替
+
+        // タブ切替
         function openTab(tabId, event) {
             // すべて非表示
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -848,10 +926,20 @@
             // 対象タブを表示
             document.getElementById(tabId).classList.add('active');
             // 押したボタンだけ active に
-            if (event) event.target.classList.add('active');
+            if (event && event.target) { // eventとevent.targetが存在するか確認
+                event.target.classList.add('active');
+            } else {
+                // eventが渡されない場合（初回ロードなど）は、tabIdに基づいてボタンを探してactiveにする
+                const button = document.querySelector(`.tab-button[onclick*="openTab('${tabId}')"]`);
+                if (button) {
+                    button.classList.add('active');
+                } else if (tabId === 'daily-progress') { // daily-progressがデフォルトタブ
+                    document.querySelector('.tab-button').classList.add('active');
+                }
             }
+        }
 
-        // 🌟 モーダル開閉
+        // モーダル開閉
         function openModal() {
             document.getElementById('recordModal').classList.add('show');
         }
@@ -860,23 +948,25 @@
             document.getElementById('recordModal').classList.remove('show');
         }
 
-        // 🌟 寿司スコア入力表示
+        // 寿司スコア入力表示
         function toggleSushiScores() {
             const type = document.getElementById('sushiType').value;
             const scores = document.getElementById('sushiScores');
             scores.style.display = (type === 'normal' || type === 'premium') ? 'block' : 'none';
         }
 
-        // 🌟 未払い報酬を支払い
+        // 未払い報酬を支払い (現在はクライアントサイドのみの更新)
         function payUnpaidAmount() {
             stats.unpaidAmount = 0;
             updateStats();
             showSyncStatus('未払い報酬を支払いました', 'success');
+            // TODO: 未払い状態をスプレッドシートに永続化するロジックを追加する必要があります
         }
 
-        // 🌟 ページロード時に初期化
+        // ページロード時に初期化
         window.addEventListener('DOMContentLoaded', initApp);
 
     </script>
 </body>
-</html>       
+</html>
+�
